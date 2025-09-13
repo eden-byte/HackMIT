@@ -28,7 +28,8 @@ ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv', 'wmv', 'flv', 'webm'}
 
 # Initialize Anthropic client
 anthropic_client = anthropic.Anthropic(
-    api_key=os.getenv('ANTHROPIC_API_KEY', 'your-api-key-here')
+    api_key='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'
+    
 )
 
 # Global processing queue
@@ -38,7 +39,7 @@ processing_results = {}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def extract_frames_simple(video_path, output_folder, frame_rate=1):
+def extract_frames_simple(video_path, output_folder, frame_rate=0.5):
     """Extract frames from video using OpenCV only"""
     cap = cv2.VideoCapture(video_path)
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -76,7 +77,7 @@ def analyze_frame_emotion(frame_path):
             image_base64 = base64.b64encode(image_data).decode('utf-8')
         
         message = anthropic_client.messages.create(
-            model="claude-3-sonnet-20240229",
+            model="claude-3-5-haiku-20241022",
             max_tokens=300,
             messages=[
                 {
@@ -92,7 +93,7 @@ def analyze_frame_emotion(frame_path):
                         },
                         {
                             "type": "text",
-                            "text": "Analyze the emotions in this image. Return JSON with emotion scores 0-10 for: joy, sadness, anger, fear, surprise, disgust, neutral. Format: {\"emotions\": {\"joy\": 5, \"sadness\": 2}, \"description\": \"what you see\"}"
+                            "text": "Analyze the emotions on the face of the person in video. Return JSON with emotion scores 0-10 for: joy, sadness, anger, fear, surprise, disgust. Format: {\"emotions\": {\"joy\": 5, \"sadness\": 2}, \"description\": \"what you see\"}"
                         }
                     ]
                 }
