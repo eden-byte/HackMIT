@@ -366,7 +366,557 @@ worker_thread = threading.Thread(target=worker, daemon=True)
 worker_thread.start()
 
 # Simple HTML template
+MAIN_PAGE_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ReLive! - AI-Powered Video Emotion Analysis</title>
+    <style>
+        :root {
+            --bg-primary: #FFFAF2;
+            --border-color: #b1b0fe;
+            --window-bg: #c19acb;
+            --cream: #FFFDD0;
+            --light-grey: #e8e8e8;
+            --gradient-pink-green: linear-gradient(to right, #f56ebd, #97f0b6);
+            --gradient-red-lime: linear-gradient(to right, #fd5a47, #c0e264);
+            --gradient-purple-blue: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; font-family: 'Nunito', sans-serif; font-weight: 550; }
+        
+        body {
+            background: linear-gradient(135deg, var(--bg-primary) 0%, #f8f4e9 100%);
+            color: #333;
+            overflow-x: hidden;
+        }
+        
+        header.appbar {
+            height: 80px;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 2rem;
+            border-bottom: 2px solid var(--border-color);
+            background: var(--light-grey);
+            position: fixed; left: 0; right: 0; top: 0; z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        header .app-title {
+            font-weight: 700;
+            color: #333;
+            font-size: 2.5rem;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+        
+        .nav-links a:hover {
+            color: #f56ebd;
+        }
+        
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border-radius: 0.75rem;
+            background: var(--gradient-red-lime);
+            color: white; border: none; font-weight: 700;
+            font-size: 1rem; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: all 0.2s ease;
+            font-family: 'Nunito', sans-serif;
+            text-decoration: none; display: inline-block;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+        
+        .btn-secondary {
+            background: var(--gradient-pink-green);
+        }
+        
+        main {
+            margin-top: 80px;
+            min-height: calc(100vh - 80px);
+        }
+        
+        /* Hero Section */
+        .hero-section {
+            min-height: 60vh;
+            display: flex;
+            align-items: center;
+            padding: 4rem 2rem;
+            background: var(--gradient-purple-blue);
+            color: white;
+            text-align: center;
+        }
+        
+        .hero-content {
+            flex: 1;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .hero-content h1 {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+        }
+        
+        .mission-statement {
+            font-size: 1.3rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+        }
+        
+        /* Video Section */
+        .video-section {
+            padding: 4rem 2rem;
+            display: flex;
+            gap: 3rem;
+            align-items: strech;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .demo-video {
+            flex: 3;
+        }
+        
+        .other-videos {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .video-container {
+            position: relative;
+            background: var(--window-bg);
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            border: 2px solid var(--border-color);
+        }
+        
+        .video-header {
+            background: var(--gradient-pink-green);
+            color: white;
+            padding: 1rem;
+            font-weight: 700;
+            text-align: center;
+        }
+        
+        .video-wrapper {
+            padding: 1rem;
+            aspect-ratio: 16/9;
+            background: #000;
+        }
+        
+        .video-wrapper iframe,
+        .video-wrapper video {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 0.5rem;
+        }
+        
+        /* Before/After Comparison Sections */
+        .comparison-section {
+            padding: 4rem 2rem;
+            background: linear-gradient(135deg, #f8f4e9 0%, white 100%);
+        }
+        
+        .section-title {
+            text-align: center;
+            font-size: 3rem;
+            color: #333;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        
+        .section-subtitle {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 3rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .comparison-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            margin-bottom: 4rem;
+        }
+        
+        .comparison-item {
+            background: white;
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border: 2px solid var(--border-color);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .comparison-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+        
+        .comparison-header {
+            padding: 1.5rem;
+            font-weight: 700;
+            font-size: 1.3rem;
+            text-align: center;
+            color: white;
+        }
+        
+        .before-header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+        }
+        
+        .after-header {
+            background: linear-gradient(135deg, #00b894, #00cec9);
+        }
+        
+        .comparison-content {
+            padding: 2rem;
+        }
+        
+        .video-comparison {
+            aspect-ratio: 16/9;
+            width: 100%;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .video-comparison video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .video-comparison img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #f5f5f5;
+        }
+        
+        .audio-comparison {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .waveform-container {
+            background: #f8f9fa;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            border: 1px solid #e9ecef;
+        }
+        
+        .waveform-visual {
+            width: 100%;
+            height: 80px;
+            background: linear-gradient(90deg, #ddd 0%, #999 50%, #ddd 100%);
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .waveform-visual.before::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                90deg,
+                #ff6b6b 0px,
+                #ff6b6b 2px,
+                transparent 2px,
+                transparent 8px
+            );
+            opacity: 0.7;
+        }
+        
+        .waveform-visual.after::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                90deg,
+                #00b894 0px,
+                #00b894 1px,
+                transparent 1px,
+                transparent 4px
+            );
+            opacity: 0.8;
+        }
+        
+        .audio-info {
+            text-align: center;
+        }
+        
+        .audio-info h4 {
+            margin: 0 0 0.5rem 0;
+            color: #333;
+        }
+        
+        .audio-info p {
+            margin: 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        /* Call-to-Action Section */
+        .cta-section {
+            padding: 4rem 2rem;
+            background: var(--gradient-red-lime);
+            color: white;
+            text-align: center;
+        }
+        
+        .cta-section h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .cta-section p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+        }
+        
+        .btn-white {
+            background: white;
+            color: #333;
+            font-weight: 700;
+        }
+        
+        .btn-white:hover {
+            background: #f0f0f0;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .video-section {
+                flex-direction: column;
+            }
+            
+            .comparison-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .hero-content h1 {
+                font-size: 2.5rem;
+            }
+            
+            .other-videos {
+                gap: 1rem;
+            }
+            
+            .section-title {
+                font-size: 2.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="appbar">
+        <div class="app-title">ReLive! 🎭</div>
+        <nav class="nav-links">
+            <a href="/demo" class="btn">Try It Now!</a>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Hero Section with Problem Statement -->
+        <section class="hero-section">
+            <div class="hero-content">
+                <h1>RePlay Moments</h1>
+                <p class="mission-statement">
+                    Every young adult has moments of self-doubt and social anxiety, especially individuals with ADHD and Autism. We are trying to alleviate the social anxiety of interactions by recording and classifying social events throughout your day, so you don't have to memorize or stress about every moment.
+                </p>
+                <a href="/demo" class="btn">Start Your Analysis</a>
+            </div>
+        </section>
+
+        <!-- Video Demo Section -->
+        <section class="video-section">
+            <div class="demo-video">
+                <div class="video-container">
+                    <div class="video-header">🎬 Main Demo - See ReLive! in Action</div>
+                    <div class="video-wrapper">
+                        <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" allowfullscreen></iframe>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="other-videos">
+                <div class="video-container">
+                    <div class="video-header">📊 Feature Overview</div>
+                    <div class="video-wrapper">
+                        <video controls>
+                            <source src="/static/modules/Video_1.mp4" type="video/mp4">
+                            <source src="/static/modules/Video_2.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                </div>
+                
+                <div class="video-container">
+                    <div class="video-header">💡 Use Cases & Benefits</div>
+                    <div class="video-wrapper">
+                        <video controls>
+                            <source src="/static/modules/Video_2.mp4" type="video/mp4">
+                            <source src="/static/modules/Video_2.webm" type="video/webm">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Before/After Comparison Section -->
+        <section class="comparison-section">
+            <h2 class="section-title">🎵 Experience Our Advanced Filtration</h2>
+            <p class="section-subtitle">See and hear the dramatic difference our AI-powered audio and video enhancement makes</p>
+            
+            <!-- Audio Comparison -->
+            <div class="comparison-container">
+                <div class="comparison-item">
+                    <div class="comparison-header before-header">
+                        🔊 Original Audio - Before Processing
+                    </div>
+                    <div class="comparison-content">
+                        <div class="audio-comparison">
+                            <div class="waveform-container">
+                                <div class="waveform-visual before"></div>
+                                <div class="audio-info">
+                                    <h4>Raw Audio Sample</h4>
+                                    <p>Background noise, static, distortion present</p>
+                                </div>
+                            </div>
+                            <audio controls style="width: 100%; margin-top: 1rem;">
+                                <source src="/static/audio/audio_raw_00-00-20.wav" type="audio/wav">
+                                <source src="/static/audio/sample_before.mp3" type="audio/mpeg">
+                                Your browser does not support the audio element.
+                            </audio>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="comparison-item">
+                    <div class="comparison-header after-header">
+                        ✨ Enhanced Audio - After Processing
+                    </div>
+                    <div class="comparison-content">
+                        <div class="audio-comparison">
+                            <div class="waveform-container">
+                                <div class="waveform-visual after"></div>
+                                <div class="audio-info">
+                                    <h4>AI-Enhanced Audio</h4>
+                                    <p>Crystal clear, noise-free, optimized</p>
+                                </div>
+                            </div>
+                            <audio controls style="width: 100%; margin-top: 1rem;">
+                                <source src="/static/audio/audio_processed_00-00-20.wav" type="audio/wav">
+                                <source src="/static/audio/sample_after.mp3" type="audio/mpeg">
+                                Your browser does not support the audio element.
+                            </audio>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video/Image Comparison -->
+            <div class="comparison-container">
+                <div class="comparison-item">
+                    <div class="comparison-header before-header">
+                        📹 Original Frame - Before Processing
+                    </div>
+                    <div class="comparison-content">
+                        <div class="video-comparison">
+                            <img src="/static/video/preprocesspic.png" alt="Before processing frame">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="comparison-item">
+                    <div class="comparison-header after-header">
+                        ✨ Enhanced Frame - After Processing
+                    </div>
+                    <div class="comparison-content">
+                        <div class="video-comparison">
+                            <img src="/static/video/frame_00-00-05.jpg" alt="After processing frame">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Call to Action Section -->
+        <section class="cta-section">
+            <h2>Ready to Transform Your Communication?</h2>
+            <p>Join thousands of professionals who trust ReLive! to enhance their video presence</p>
+            <a href="/demo" class="btn btn-white">Start Your Free Analysis</a>
+        </section>
+    </main>
+
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+"""
+
 UPLOAD_HTML = """
+<html>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -431,10 +981,6 @@ UPLOAD_HTML = """
             flex-direction: column;
         }
         
-        .window:hover { 
-            box-shadow: 0 15px 35px -5px rgba(0,0,0,0.2); 
-        }
-        
         .title-bar {
             display: flex; align-items: center; gap: .5rem;
             text-align: center;
@@ -454,49 +1000,15 @@ UPLOAD_HTML = """
         
         .title-bar-text { 
             font-size: 1.2rem; font-weight: 700; flex-grow: 1; 
-            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; 
-        }
-        
-        .title-bar-controls {
-            display: flex;
-            gap: 0.5rem;
-        }
-        
-        .title-bar-controls button {
-            font-size: 1rem; font-weight: bold;
-            background-color: rgba(255,255,255,0.15);
-            padding: 0.25rem 0.6rem;
-            border-radius: 0.5rem; border: none; color: white; cursor: pointer; 
-            transition: all 0.2s ease;
-            min-width: 1.8rem;
-            text-align: center;
-        }
-        
-        .title-bar-controls button:hover { 
-            background-color: rgba(255,255,255,0.25); 
         }
         
         .window-body {
             padding: 2rem;
-            font-size: 0.95rem;
-            line-height: 1.6;
             color: #f5f5f5;
             flex: 1;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-        }
-        
-        .window.minimized .window-body { 
-            display: none !important; 
-        }
-        
-        .window.minimized .title-bar { 
-            opacity: 0.85; 
-        }
-        
-        .window.minimized {
-            height: auto;
         }
         
         .upload-section {
@@ -519,7 +1031,7 @@ UPLOAD_HTML = """
         
         .drop-zone {
             border: 3px dashed rgba(255,255,255,0.4);
-            padding: 20rem 20rem;
+            padding: 4rem 2rem;
             border-radius: 1rem;
             margin: 1.5rem 0;
             background: rgba(255,255,255,0.1);
@@ -533,17 +1045,6 @@ UPLOAD_HTML = """
             transform: translateY(-2px);
         }
         
-        .drop-zone h3 {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-            color: #f5f5f5;
-        }
-        
-        .drop-zone p {
-            opacity: 0.8;
-            font-size: 1rem;
-        }
-        
         .btn {
             padding: 1rem 2rem;
             border-radius: 0.75rem;
@@ -553,8 +1054,6 @@ UPLOAD_HTML = """
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             transition: all 0.2s ease;
             font-family: 'Nunito', sans-serif;
-            text-decoration: none; display: inline-block;
-            letter-spacing: 0.5px;
         }
         
         .btn:hover {
@@ -562,154 +1061,12 @@ UPLOAD_HTML = """
             box-shadow: 0 6px 16px rgba(0,0,0,0.2);
         }
         
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .content-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-            overflow-y: auto;
-        }
-        
-        .file-list {
-            flex-shrink: 0;
-        }
-        
-        .file-item {
+        .file-item, .status {
             padding: 1.2rem;
             background: rgba(255,255,255,0.1);
             margin: 0.5rem 0;
             border-radius: 0.75rem;
             border: 1px solid rgba(255,255,255,0.2);
-            transition: all 0.2s ease;
-            font-size: 1rem;
-        }
-        
-        .file-item:hover {
-            background: rgba(255,255,255,0.15);
-        }
-        
-        .status {
-            padding: 2rem;
-            border-radius: 1rem;
-            border: 1px solid rgba(255,255,255,0.2);
-            flex: 1;
-            overflow-y: auto;
-        }
-        
-        .status-processing {
-            background: rgba(255, 243, 205, 0.2);
-            border-color: rgba(255, 234, 167, 0.4);
-        }
-        
-        .status-completed {
-            background: rgba(212, 237, 218, 0.2);
-            border-color: rgba(195, 230, 203, 0.4);
-        }
-        
-        .status h3 {
-            margin-bottom: 1rem;
-            color: #f5f5f5;
-            font-size: 1.3rem;
-        }
-        
-        .button-group {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1.5rem;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        
-        .feedback-window {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 90%;
-            max-width: 900px;
-            max-height: 80vh;
-            background: var(--window-bg);
-            border-radius: 1rem;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-            z-index: 2000;
-            overflow: hidden;
-        }
-        
-        .feedback-content {
-            padding: 2rem;
-            max-height: calc(80vh - 4rem);
-            overflow-y: auto;
-            color: #f5f5f5;
-        }
-        
-        .feedback-item {
-            margin: 1.5rem 0;
-            padding: 1.5rem;
-            background: rgba(255,255,255,0.1);
-            border-radius: 0.75rem;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        
-        .feedback-item h4 {
-            margin-bottom: 1rem;
-            color: #f5f5f5;
-        }
-        
-        .close-feedback {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: white;
-            width: 2rem;
-            height: 2rem;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: bold;
-        }
-        
-        .close-feedback:hover {
-            background: rgba(255,255,255,0.3);
-        }
-        
-        /* Custom scrollbar */
-        .window-body::-webkit-scrollbar,
-        .content-area::-webkit-scrollbar,
-        .status::-webkit-scrollbar,
-        .feedback-content::-webkit-scrollbar {
-            width: 8px;
-        }
-        
-        .window-body::-webkit-scrollbar-track,
-        .content-area::-webkit-scrollbar-track,
-        .status::-webkit-scrollbar-track,
-        .feedback-content::-webkit-scrollbar-track {
-            background: rgba(255,255,255,0.1);
-            border-radius: 4px;
-        }
-        
-        .window-body::-webkit-scrollbar-thumb,
-        .content-area::-webkit-scrollbar-thumb,
-        .status::-webkit-scrollbar-thumb,
-        .feedback-content::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.3);
-            border-radius: 4px;
-        }
-        
-        .window-body::-webkit-scrollbar-thumb:hover,
-        .content-area::-webkit-scrollbar-thumb:hover,
-        .status::-webkit-scrollbar-thumb:hover,
-        .feedback-content::-webkit-scrollbar-thumb:hover {
-            background: rgba(255,255,255,0.4);
         }
     </style>
 </head>
@@ -723,10 +1080,6 @@ UPLOAD_HTML = """
             <div class="title-bar">
                 <div class="win-dot"></div>
                 <div class="title-bar-text">Video Emotion Analysis</div>
-                <div class="title-bar-controls">
-                    <button id="minimizeBtn" aria-label="Minimize">−</button>
-                    <button id="maximizeBtn" aria-label="Maximize" style="display:none;">□</button>
-                </div>
             </div>
             
             <div class="window-body">
@@ -743,12 +1096,12 @@ UPLOAD_HTML = """
                     <button id="uploadBtn" class="btn" style="display: none;">🚀 Upload & Analyze Videos</button>
                 </div>
                 
-                <div class="content-area">
-                    <div id="fileList" class="file-list"></div>
-                    <div id="status" class="status" style="display: none;"></div>
-                </div>
+                <div id="fileList"></div>
+                <div id="status" style="display: none;"></div>
             </div>
         </div>
+    </div>
+
     <script>
         let selectedFiles = [];
         let uploadedVideos = [];
@@ -792,7 +1145,6 @@ UPLOAD_HTML = """
         function startPolling() {
             const statusDiv = document.getElementById('status');
             statusDiv.style.display = 'block';
-            statusDiv.className = 'status status-processing';
             statusDiv.innerHTML = '<h3>🔄 Processing videos...</h3><p>Please wait while we analyze your videos for emotional content.</p>';
             
             const interval = setInterval(async () => {
@@ -818,8 +1170,7 @@ UPLOAD_HTML = """
                 
                 if (allCompleted) {
                     clearInterval(interval);
-                    statusDiv.className = 'status status-completed';
-                    statusDiv.innerHTML += '<div class="button-group"><button class="btn" onclick="getFeedback()">💬 Get AI Feedback via Poke</button><button class="btn" onclick="viewResults()">📈 View Raw Results</button></div>';
+                    statusDiv.innerHTML += '<div style="margin-top: 1rem;"><button class="btn" onclick="getFeedback()">💬 Get AI Feedback</button> <button class="btn" onclick="viewResults()">📈 View Results</button></div>';
                 }
             }, 2000);
         }
@@ -832,80 +1183,10 @@ UPLOAD_HTML = """
             try {
                 const response = await fetch('/analyze_feedback');
                 const data = await response.json();
-                
-                // Create feedback window
-                const feedbackWindow = document.createElement('div');
-                feedbackWindow.className = 'feedback-window';
-                
-                let feedbackHtml = `
-                    <div class="title-bar">
-                        <div class="win-dot"></div>
-                        <div class="title-bar-text">AI Feedback Analysis</div>
-                    </div>
-                    <button class="close-feedback" onclick="this.parentElement.remove()">×</button>
-                    <div class="feedback-content">
-                        <h3>🤖 AI Analysis Results</h3>
-                        <p style="margin-bottom: 1.5rem; opacity: 0.9;">Based on ${data.total_videos_analyzed} video(s) analyzed</p>
-                `;
-                
-                data.feedback_results.forEach((result, index) => {
-                    feedbackHtml += `
-                        <div class="feedback-item">
-                            <h4>📹 Video ${index + 1} Analysis</h4>
-                            <p><strong>Frames Analyzed:</strong> ${result.total_frames_analyzed}</p>
-                            <div style="margin-top: 1rem; white-space: pre-wrap; line-height: 1.6;">${result.feedback}</div>
-                            ${result.poke_response ? '<p style="margin-top: 1rem; font-style: italic; opacity: 0.8;">✅ Feedback sent to Poke successfully!</p>' : ''}
-                        </div>
-                    `;
-                });
-                
-                feedbackHtml += '</div>';
-                feedbackWindow.innerHTML = feedbackHtml;
-                
-                document.body.appendChild(feedbackWindow);
-                
+                alert('Analysis complete! Check your Poke messages for detailed feedback.');
             } catch (error) {
                 alert('Failed to get feedback analysis: ' + error);
             }
-        }
-
-        // Close feedback window when clicking outside
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('feedback-window')) {
-                e.target.remove();
-            }
-        });
-
-        // Window controls functionality
-        const mainWindow = document.querySelector('.window');
-        const minimizeBtn = document.getElementById('minimizeBtn');
-        const maximizeBtn = document.getElementById('maximizeBtn');
-        const titleBar = document.querySelector('.title-bar');
-        
-        if (mainWindow && minimizeBtn && maximizeBtn && titleBar) {
-            function toggleMinimize() {
-                const isNowMinimized = mainWindow.classList.toggle('minimized');
-                if (isNowMinimized) {
-                    minimizeBtn.style.display = 'none';
-                    maximizeBtn.style.display = 'inline-block';
-                } else {
-                    minimizeBtn.style.display = 'inline-block';
-                    maximizeBtn.style.display = 'none';
-                }
-            }
-            
-            minimizeBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                toggleMinimize();
-            });
-            
-            maximizeBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                toggleMinimize();
-            });
-            
-            // Double-click title bar to minimize/maximize
-            titleBar.addEventListener('dblclick', toggleMinimize);
         }
     </script>
 </body>
@@ -914,6 +1195,10 @@ UPLOAD_HTML = """
 
 @app.route('/')
 def index():
+    return MAIN_PAGE_HTML
+
+@app.route('/demo')
+def demo():
     return UPLOAD_HTML
 
 @app.route('/upload', methods=['POST'])
@@ -945,6 +1230,11 @@ def upload_files():
         'message': f'Successfully uploaded {len(uploaded_videos)} videos',
         'videos': uploaded_videos
     })
+
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    from flask import send_from_directory
+    return send_from_directory('static', filename)
 
 @app.route('/status/<video_id>')
 def get_status(video_id):
