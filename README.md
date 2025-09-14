@@ -1,21 +1,17 @@
-**Video Emotion Analysis with AI Feedback**
+# 🎬 Video Emotion Analysis with AI Feedback
 
-A Flask-based web application that analyzes emotions in videos using computer vision, audio processing, and AI-powered feedback generation. Built for HackMIT 2024 with integration to Poke's automation platform.
+A Flask-based web application that analyzes emotions from videos collected by the Mentra Live glass, using computer vision, audio processing, and AI-powered feedback generation. Built for HackMIT 2025 with integration to Anthropic's LLM Model - Claude and Poke's automation platform.
 
-## Features
+## ✨ Features
 
-- **Multi-video upload** with drag-and-drop interface
-- **Advanced frame extraction** and image enhancement (CLAHE Grayscale)
-- **Audio processing** with MFCC feature extraction
-- **Emotion analysis** using Anthropic's Claude API
-- **AI-powered feedback** generation for presentation skills
-- **Poke integration** for automated feedback delivery
-- **Real-time processing** status updates
-- **RESTful API** for frontend integration
-
-## Demo
-
-Upload videos → Process with AI → Get constructive feedback via Poke
+- Multi-video upload with drag-and-drop interface
+- Advanced frame extraction and image enhancement (CLAHE Grayscale)
+- Audio processing with MFCC feature extraction
+- Emotion analysis using Anthropic's Claude API
+- AI-powered feedback generation for presentation skills
+- Poke integration for automated feedback delivery
+- Real-time processing status updates
+- RESTful API for frontend integration
 
 ## Technology Stack
 
@@ -61,6 +57,7 @@ sudo apt install ffmpeg
 ```
 
 4. **Set up environment variables**
+
 Create a `.env` file:
 ```bash
 ANTHROPIC_API_KEY=your-anthropic-api-key-here
@@ -68,6 +65,7 @@ POKE_API_KEY=your-poke-api-key-here
 ```
 
 5. **Create required modules**
+
 Ensure you have the following files:
 - `audio_processor.py` - Audio processing utilities
 - `image_processor.py` - Image enhancement and analysis
@@ -221,7 +219,7 @@ pip install -r requirements.txt
 - Process videos sequentially
 - Reduce `SAMPLE_RATE_SECONDS` for large videos
 
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -229,18 +227,18 @@ pip install -r requirements.txt
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## License
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
-- Built for HackMIT 2024
+- Built for HackMIT 2025
 - Anthropic Claude API for emotion analysis
 - Poke platform for automation integration
 - OpenCV community for computer vision tools
 
-## Team
+## 👥 Team
 
 - **Backend Development**: Video processing and AI integration
 - **Frontend Development**: User interface and experience
