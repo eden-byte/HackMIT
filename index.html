@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ReLive! — Desktop</title>
+  <style>
+    :root {
+      --win-width: 400px;
+      --win-height: 250px;
+      --gap: 40px;
+      --margin: 50px;
+      --header-offset: 80px;
+      --bg-primary: #FFFAF2;
+      --border-color: #b1b0fe;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; font-family: 'Nunito', sans-serif; font-weight: 550; }
+    body {
+      background: linear-gradient(135deg, var(--bg-primary) 0%, #f8f4e9 100%);
+      color: #f5f5f5;
+      overflow: hidden;
+    }
+    header.appbar {
+      height: 56px;
+      display:flex;align-items:center;justify-content:space-between;
+      padding:0 1rem;
+      border-bottom:2px solid var(--border-color);
+      background:#FFFDD0;
+      position:fixed;left:0;right:0;top:0;z-index:1000;
+    }
+    header .app-title {
+      font-weight:700;
+      color:#9ACD32;
+    }
+    header .actions{display:flex;gap:.5rem}
+    .canvas {
+      position:relative;
+      height:calc(100vh - 56px);
+      margin-top:56px;
+      overflow:hidden;
+    }
+    .window {
+      position:fixed;
+      width:var(--win-width);
+      box-shadow:0 10px 25px -5px rgba(0,0,0,0.15);
+      border-radius:1rem;
+      border:1px solid var(--border-color);
+      background-color:#c19acb;
+      backdrop-filter: blur(8px);
+      transition:all 0.2s ease;
+      will-change:transform;
+    }
+    .window:hover { box-shadow:0 15px 35px -5px rgba(0,0,0,0.2); }
+    .title-bar {
+      display:flex;align-items:center;gap:.5rem;
+      padding:.75rem 1rem;
+      border-top-left-radius:1rem;
+      border-top-right-radius:1rem;
+      background: linear-gradient(to right, #f56ebd, #97f0b6);
+      color:white;
+      cursor:move;
+    }
+    .win-dot {
+      width:0.6rem; height:0.6rem; border-radius:50%;
+      background-color:rgba(255,255,255,0.9);
+      box-shadow:0 1px 2px rgba(0,0,0,0.1);
+    }
+    .title-bar-text { font-size:1rem; font-weight:700; flex-grow:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .title-bar-controls button {
+      font-size:1rem; font-weight:bold;
+      background-color:rgba(255,255,255,0.15);
+      padding:0.25rem 0.6rem;
+      border-radius:0.5rem; border:none; color:white; cursor:pointer; transition:all 0.2s ease;
+    }
+    .title-bar-controls button:hover { background-color:rgba(255,255,255,0.25); }
+    .window-body {
+      padding:1rem;
+      font-size:0.95rem;
+      line-height:1.5;
+      color:#f5f5f5;
+    }
+    .window.minimized .window-body { display:none !important; }
+    .window.minimized .title-bar { opacity:0.85; }
+    .win-action { background-color:#FFFDD0; }
+    .win-action .title-bar { background:linear-gradient(to right,#fd5a47,#c0e264); }
+    .win-action .window-body { color:#6a3fbf; }
+    .reset-btn {
+      padding: 0.5rem 1rem;
+      border-radius: 0.75rem;
+      background: linear-gradient(to right, #c19acb, #b28ac5);
+      color: white; border: none; font-weight: 700;
+      font-size: 0.875rem; cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1),
+                  0 0 0 1px rgba(255,255,255,0.2) inset;
+      transition: all 0.2s ease; font-family: 'Nunito', sans-serif;
+      text-decoration: none; display: inline-block; text-align: center;
+      letter-spacing: 0.5px; text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+    }
+    .reset-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15),
+                  0 0 0 1px rgba(255,255,255,0.3) inset;
+    }
+  </style>
+</head>
+<body>
+  <header class="appbar">
+    <div class="app-title">ReLive! — Desktop</div>
+    <div class="actions">
+      <button id="resetPositions" class="reset-btn">Reset Positions</button>
+      <button id="resetAll" class="reset-btn">Hard Reset</button>
+    </div>
+  </header>
+
+  <main id="stage" class="canvas">
+    <div class="window" data-id="win-topics">
+      <div class="title-bar"><div class="win-dot"></div><div class="title-bar-text">Topics</div>
+        <div class="title-bar-controls"><button aria-label="Minimize">–</button><button aria-label="Maximize" style="display:none;">□</button><button aria-label="Close">x</button></div>
+      </div>
+      <div class="window-body"><div>Longest: 4m12s</div><div>Peak Sentiment: High @ 23:17</div></div>
+    </div>
+
+    <div class="window" data-id="win-highlights">
+      <div class="title-bar"><div class="win-dot"></div><div class="title-bar-text">Highlights</div>
+        <div class="title-bar-controls"><button aria-label="Minimize">–</button><button aria-label="Maximize" style="display:none;">□</button><button aria-label="Close">x</button></div>
+      </div>
+      <div class="window-body"><div>Longest: 4m12s</div><div>Peak Sentiment: High @ 23:17</div></div>
+    </div>
+
+    <div class="window win-action" data-id="win-actions">
+      <div class="title-bar"><div class="win-dot"></div><div class="title-bar-text">Action Items</div>
+        <div class="title-bar-controls"><button aria-label="Minimize">–</button><button aria-label="Maximize" style="display:none;">□</button><button aria-label="Close">x</button></div>
+      </div>
+      <div class="window-body"><ol><li>Ship UI prototype</li><li>Record demo</li><li>Sync with API</li></ol></div>
+    </div>
+
+    <div class="window" data-id="win-extra1">
+      <div class="title-bar"><div class="win-dot"></div><div class="title-bar-text">Extra Window 1</div>
+        <div class="title-bar-controls"><button aria-label="Minimize">–</button><button aria-label="Maximize" style="display:none;">□</button><button aria-label="Close">x</button></div>
+      </div>
+      <div class="window-body"><p>Additional content here.</p></div>
+    </div>
+
+    <div class="window" data-id="win-extra2">
+      <div class="title-bar"><div class="win-dot"></div><div class="title-bar-text">Extra Window 2</div>
+        <div class="title-bar-controls"><button aria-label="Minimize">–</button><button aria-label="Maximize" style="display:none;">□</button><button aria-label="Close">x</button></div>
+      </div>
+      <div class="window-body"><p>Another extra window.</p></div>
+    </div>
+  </main>
+
+  <div class="toolbar" style="position:fixed; bottom:12px; left:12px; display:flex; gap:.5rem; z-index:1200;">
+    <button id="undoClose" class="reset-btn">Undo Close</button>
+    <button id="toggleSnap" class="reset-btn">Snap On</button>
+  </div>
+
+  <script>
+    const SNAP = { on: false, size: 12 };
+    const windows = Array.from(document.querySelectorAll('.window'));
+    const closedWindows = [];
+
+    windows.forEach((w, i) => {
+      const id = w.dataset.id;
+      const saved = JSON.parse(localStorage.getItem(id) || 'null');
+      if (saved) {
+        w.style.left = saved.left;
+        w.style.top = saved.top;
+        if (saved.minimized) {
+          w.classList.add('minimized');
+          const minBtn = w.querySelector('button[aria-label="Minimize"]');
+          const maxBtn = w.querySelector('button[aria-label="Maximize"]');
+          if(minBtn && maxBtn){ minBtn.style.display="none"; maxBtn.style.display="inline-block"; }
+        }
+      } else {
+        // Arrange 3 per row with equal gaps
+        const col = i % 3;
+        const row = Math.floor(i / 3);
+        const left = 50 + col * (400 + 40); // margin + col*(width+gap)
+        const top = 80 + row * (220 + 0); // header offset + row*(height+gap)
+        w.style.left = left + "px";
+        w.style.top = top + "px";
+      }
+      w.style.position = 'fixed';
+    });
+
+    windows.forEach(el => {
+      const bar = el.querySelector('.title-bar');
+      let dragging = false, ox = 0, oy = 0;
+
+      bar.addEventListener('mousedown', e => {
+        dragging = true;
+        const rect = el.getBoundingClientRect();
+        ox = e.clientX - rect.left;
+        oy = e.clientY - rect.top;
+        el.style.transform = 'none';
+      });
+
+      document.addEventListener('mousemove', e => {
+        if (!dragging) return;
+        let nx = e.clientX - ox;
+        let ny = e.clientY - oy;
+        if (SNAP.on) {
+          nx = Math.round(nx / SNAP.size) * SNAP.size;
+          ny = Math.round(ny / SNAP.size) * SNAP.size;
+        }
+        el.style.left = nx + 'px';
+        el.style.top = ny + 'px';
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (!dragging) return;
+        dragging = false;
+        saveState(el);
+      });
+
+      bar.addEventListener('dblclick', () => toggleMinimize(el));
+
+      const minBtn = el.querySelector('button[aria-label="Minimize"]');
+      const maxBtn = el.querySelector('button[aria-label="Maximize"]');
+      const closeBtn = el.querySelector('button[aria-label="Close"]');
+
+      minBtn?.addEventListener('click', ev => { ev.stopPropagation(); toggleMinimize(el); });
+      maxBtn?.addEventListener('click', ev => { ev.stopPropagation(); restoreWindow(el); });
+      closeBtn?.addEventListener('click', ev => { ev.stopPropagation(); el.style.display = 'none'; closedWindows.push(el); });
+    });
+
+    function toggleMinimize(win){
+      const isNowMinimized = win.classList.toggle('minimized');
+      const minBtn = win.querySelector('button[aria-label="Minimize"]');
+      const maxBtn = win.querySelector('button[aria-label="Maximize"]');
+      if(isNowMinimized){
+        if(minBtn && maxBtn){ minBtn.style.display="none"; maxBtn.style.display="inline-block"; }
+      } else {
+        if(minBtn && maxBtn){ minBtn.style.display="inline-block"; maxBtn.style.display="none"; }
+      }
+      saveState(win);
+    }
+
+    function restoreWindow(win){
+      win.classList.remove('minimized');
+      const minBtn = win.querySelector('button[aria-label="Minimize"]');
+      const maxBtn = win.querySelector('button[aria-label="Maximize"]');
+      if(minBtn && maxBtn){ minBtn.style.display="inline-block"; maxBtn.style.display="none"; }
+      saveState(win);
+    }
+
+    function saveState(win){
+      const id = win.dataset.id;
+      const rect = win.getBoundingClientRect();
+      const data = { left: rect.left + 'px', top: rect.top + 'px', minimized: win.classList.contains('minimized') };
+      localStorage.setItem(id, JSON.stringify(data));
+    }
+
+    document.getElementById('undoClose').addEventListener('click', () => {
+      const w = closedWindows.pop();
+      if (w){ w.style.display = ''; }
+    });
+    document.getElementById('toggleSnap').addEventListener('click', (e) => {
+      SNAP.on = !SNAP.on;
+      e.target.textContent = SNAP.on ? 'Snap Off' : 'Snap On';
+    });
+    document.getElementById('resetPositions').addEventListener('click', () => {
+      windows.forEach(w => localStorage.removeItem(w.dataset.id));
+      location.reload();
+    });
+    document.getElementById('resetAll').addEventListener('click', () => {
+      windows.forEach(w => localStorage.removeItem(w.dataset.id));
+      location.reload();
+    });
+  </script>
+</body>
+</html>
