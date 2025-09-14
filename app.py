@@ -10,6 +10,13 @@ import json
 import threading
 from queue import Queue
 import base64
+import subprocess
+import soundfile as sf
+import shutil
+
+#Import the processing modules
+import audio_processor
+import image_processor
 
 app = Flask(__name__)
 CORS(app)
@@ -18,6 +25,9 @@ CORS(app)
 UPLOAD_FOLDER = 'uploads'
 FRAMES_FOLDER = 'extracted/frames'
 RESULTS_FOLDER = 'results'
+SAMPLE_RATE_SECONDS = 2
+AUDIO_CLIP_DURATION_SECONDS = 3
+AUDIO_SAMPLE_RATE = 44100 # The sample rate to work with
 
 # Create directories if they don't exist
 for folder in [UPLOAD_FOLDER, FRAMES_FOLDER, RESULTS_FOLDER]:
@@ -26,11 +36,6 @@ for folder in [UPLOAD_FOLDER, FRAMES_FOLDER, RESULTS_FOLDER]:
 # Allowed video extensions
 ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv', 'wmv', 'flv', 'webm'}
 
-# Initialize Anthropic client
-anthropic_client = anthropic.Anthropic(
-    api_key='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'
-    
-)
 
 # Global processing queue
 processing_queue = Queue()
@@ -39,7 +44,7 @@ processing_results = {}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def extract_frames_simple(video_path, output_folder, frame_rate=0.5):
+def extract_frames_simple(video_path, output_folder, frame_rate=1):
     """Extract frames from video using OpenCV only"""
     cap = cv2.VideoCapture(video_path)
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -69,6 +74,38 @@ def extract_frames_simple(video_path, output_folder, frame_rate=0.5):
     cap.release()
     return extracted_frames
 
+def format_timestamp(seconds):
+    """Converts seconds into HH-MM-SS format for filenames."""
+    h = int(seconds // 3600)
+    m = int((seconds % 3600) // 60)
+    s = int(seconds % 60)
+    return f"{h:02d}-{m:02d}-{s:02d}"
+
+def extract_full_audio_track(video_path, temp_audio_path):
+    """
+    Uses ffmpeg to extract the full audio track to a temporary WAV file.
+    This is much more robust than library-based in-memory extraction.
+    Returns True on success, False on failure.
+    """
+    print("Extracting full audio track with ffmpeg...")
+    command = [
+        'ffmpeg',
+        '-i', video_path,
+        '-vn',            # No video
+        '-acodec', 'pcm_s16le', # Use standard WAV codec
+        '-ar', str(AUDIO_SAMPLE_RATE), # Set audio sample rate
+        '-ac', '1',       # Set to mono
+        '-y',             # Overwrite output file if it exists
+        temp_audio_path
+    ]
+    try:
+        subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        print("Audio extraction successful.")
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        print("Error: ffmpeg command failed. Is ffmpeg installed and in your system's PATH?")
+        return False
+
 def analyze_frame_emotion(frame_path):
     """Analyze emotions in a frame using Anthropic API"""
     try:
@@ -93,7 +130,7 @@ def analyze_frame_emotion(frame_path):
                         },
                         {
                             "type": "text",
-                            "text": "Analyze the emotions on the face of the person in video. Return JSON with emotion scores 0-10 for: joy, sadness, anger, fear, surprise, disgust. Format: {\"emotions\": {\"joy\": 5, \"sadness\": 2}, \"description\": \"what you see\"}"
+                            "text": "Analyze the emotions on the face of the person in this image. Return JSON with emotion scores 0-10 for: joy, sadness, anger, fear, surprise, disgust, neutral. Format: {\"emotions\": {\"joy\": 5, \"sadness\": 2}, \"description\": \"what you see\"}"
                         }
                     ]
                 }
@@ -107,34 +144,104 @@ def analyze_frame_emotion(frame_path):
         print(f"Error analyzing frame emotion: {e}")
         return {"error": str(e)}
 
-def process_video_simple(video_id, video_path):
-    """Simplified video processing - frames only"""
+def process_video_enhanced(video_id, video_path):
+    """Adapted from your teammate's process_local_video function"""
     try:
-        # Create unique folder for this video
-        video_frames_folder = os.path.join(FRAMES_FOLDER, video_id)
-        os.makedirs(video_frames_folder, exist_ok=True)
+        # Create unique folder for this video (similar to your teammate's setup)
+        video_output_dir = os.path.join(RESULTS_FOLDER, video_id)
+        image_output_dir = os.path.join(video_output_dir, "processed_images")
+        audio_output_dir = os.path.join(video_output_dir, "processed_audio")
+        temp_dir = os.path.join(video_output_dir, "temp")
         
-        # Extract frames
-        print(f"Processing video {video_id}: Extracting frames...")
-        frames = extract_frames_simple(video_path, video_frames_folder)
+        # Clean up if exists (your teammate's approach)
+        if os.path.exists(video_output_dir):
+            print(f"Output directory {video_output_dir} already exists. Removing it.")
+            shutil.rmtree(video_output_dir)
         
-        # Process each frame
+        os.makedirs(image_output_dir, exist_ok=True)
+        os.makedirs(audio_output_dir, exist_ok=True)
+        os.makedirs(temp_dir, exist_ok=True)
+
+        # Extract full audio track (your teammate's method)
+        temp_audio_path = os.path.join(temp_dir, "full_audio.wav")
+        audio_success = extract_full_audio_track(video_path, temp_audio_path)
+
+        # Set up for sampling (your teammate's approach)
+        cap = cv2.VideoCapture(video_path)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        duration = total_frames / fps
+        
+        print(f"Video FPS: {fps:.2f}, Duration: {duration:.2f}s")
+        
         results = []
-        for frame_data in frames:
-            timestamp = frame_data['timestamp']
-            
-            print(f"Analyzing frame at {timestamp:.2f}s...")
-            frame_emotion = analyze_frame_emotion(frame_data['frame_path'])
+        last_image_hash = None
+        
+        # Main sampling loop (adapted from your teammate's code)
+        for t in range(0, int(duration), SAMPLE_RATE_SECONDS):
+            timestamp_str = format_timestamp(t)
+            print(f"\n--- Processing sample at {t}s ({timestamp_str}) ---")
             
             segment_result = {
-                'timestamp': timestamp,
-                'frame_data': frame_data,
-                'frame_emotion': frame_emotion
+                'timestamp': t,
+                'timestamp_str': timestamp_str
             }
             
+            # A. Process a Single Video Frame (your teammate's approach)
+            frame_id = int(t * fps)
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_id)
+            ret, frame = cap.read()
+            
+            if ret:
+                image_data = image_processor.process_image_frame_from_memory(frame)
+                if image_data:
+                    current_hash = image_data['features']['perceptual_hash']
+                    if current_hash == last_image_hash:
+                        print("Skipping redundant image frame.")
+                        segment_result['frame_emotion'] = {"skipped": "duplicate_frame"}
+                    else:
+                        last_image_hash = current_hash
+                        image_savename = f"frame_{timestamp_str}.jpg"
+                        image_savepath = os.path.join(image_output_dir, image_savename)
+                        cv2.imwrite(image_savepath, image_data['processed_image'])
+                        
+                        # Use your existing emotion analysis
+                        frame_emotion = analyze_frame_emotion(image_savepath)
+                        segment_result['frame_emotion'] = frame_emotion
+                        segment_result['image_features'] = image_data['features']
+                        
+                        print(f"Saved processed image: {image_savename}")
+
+            # B. Process Audio Clip (your teammate's approach)
+            if audio_success:
+                try:
+                    start_sample = int(t * AUDIO_SAMPLE_RATE)
+                    end_sample = int((t + AUDIO_CLIP_DURATION_SECONDS) * AUDIO_SAMPLE_RATE)
+                    
+                    # Read the sample directly from the temporary WAV file
+                    audio_array, _ = sf.read(temp_audio_path, start=start_sample, stop=end_sample, dtype='float32')
+
+                    audio_data = audio_processor.process_audio_clip_from_numpy(audio_array, AUDIO_SAMPLE_RATE)
+                    
+                    if audio_data:
+                        audio_savename = f"clip_{timestamp_str}.wav"
+                        audio_savepath = os.path.join(audio_output_dir, audio_savename)
+                        
+                        sf.write(audio_savepath, audio_data['processed_audio_array'], audio_data['sample_rate'])
+                        
+                        segment_result['audio_features'] = audio_data['features']
+                        print(f"Saved processed audio clip: {audio_savename}")
+
+                except Exception as e:
+                    print(f"Could not process audio clip at {t}s: {e}")
+            
             results.append(segment_result)
+
+        # Clean up and finalize (your teammate's approach)
+        cap.release()
+        shutil.rmtree(temp_dir) # Remove temporary audio file and folder
         
-        # Save results
+        # Save results (your existing format)
         results_file = os.path.join(RESULTS_FOLDER, f"{video_id}_analysis.json")
         with open(results_file, 'w') as f:
             json.dump({
@@ -164,7 +271,7 @@ def worker():
     while True:
         video_id, video_path = processing_queue.get()
         processing_results[video_id] = {'status': 'processing'}
-        process_video_simple(video_id, video_path)
+        process_video_enhanced(video_id, video_path)
         processing_queue.task_done()
 
 # Start background worker
