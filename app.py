@@ -368,40 +368,387 @@ worker_thread.start()
 # Simple HTML template
 UPLOAD_HTML = """
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Video Emotion Analysis</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Video Emotion Analysis — ReLive!</title>
     <style>
-        body { font-family: Arial; margin: 40px; background: #f5f5f5; }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; }
-        .drop-zone { border: 3px dashed #007bff; padding: 40px; text-align: center; margin: 20px 0; border-radius: 10px; }
-        .drop-zone:hover { background: #f8f9fa; }
-        .file-list { margin-top: 20px; }
-        .file-item { padding: 10px; background: #f8f9fa; margin: 5px 0; border-radius: 5px; }
-        .btn { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
-        .btn:hover { background: #0056b3; }
-        .status { margin-top: 20px; padding: 15px; border-radius: 5px; }
-        .status-processing { background: #fff3cd; border: 1px solid #ffeaa7; }
-        .status-completed { background: #d4edda; border: 1px solid #c3e6cb; }
+        :root {
+            --bg-primary: #FFFAF2;
+            --border-color: #b1b0fe;
+            --window-bg: #c19acb;
+            --cream: #FFFDD0;
+            --light-grey: #e8e8e8;
+            --gradient-pink-green: linear-gradient(to right, #f56ebd, #97f0b6);
+            --gradient-red-lime: linear-gradient(to right, #fd5a47, #c0e264);
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; font-family: 'Nunito', sans-serif; font-weight: 550; }
+        
+        body {
+            background: linear-gradient(135deg, var(--bg-primary) 0%, #f8f4e9 100%);
+            color: #f5f5f5;
+            overflow-x: hidden;
+        }
+        
+        header.appbar {
+            height: 80px;
+            display: flex; align-items: center; justify-content: center;
+            padding: 0 1rem;
+            border-bottom: 2px solid var(--border-color);
+            background: var(--light-grey);
+            position: fixed; left: 0; right: 0; top: 0; z-index: 1000;
+        }
+        
+        header .app-title {
+            font-weight: 700;
+            color: #333;
+            font-size: 3rem;
+            text-align: center;
+        }
+        
+        .main-container {
+            margin-top: 56px;
+            padding: 2rem;
+            min-height: calc(100vh - 56px);
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+        }
+        
+        .window {
+            width: 100%;
+            height: calc(100vh - 56px - 4rem);
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15);
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+            background-color: var(--window-bg);
+            backdrop-filter: blur(8px);
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .window:hover { 
+            box-shadow: 0 15px 35px -5px rgba(0,0,0,0.2); 
+        }
+        
+        .title-bar {
+            display: flex; align-items: center; gap: .5rem;
+            text-align: center;
+            padding: .75rem 1rem;
+            border-top-left-radius: 1rem;
+            border-top-right-radius: 1rem;
+            background: var(--gradient-pink-green);
+            color: white;
+            flex-shrink: 0;
+        }
+        
+        .win-dot {
+            width: 0.6rem; height: 0.6rem; border-radius: 50%;
+            background-color: rgba(255,255,255,0.9);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .title-bar-text { 
+            font-size: 1.2rem; font-weight: 700; flex-grow: 1; 
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; 
+        }
+        
+        .title-bar-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .title-bar-controls button {
+            font-size: 1rem; font-weight: bold;
+            background-color: rgba(255,255,255,0.15);
+            padding: 0.25rem 0.6rem;
+            border-radius: 0.5rem; border: none; color: white; cursor: pointer; 
+            transition: all 0.2s ease;
+            min-width: 1.8rem;
+            text-align: center;
+        }
+        
+        .title-bar-controls button:hover { 
+            background-color: rgba(255,255,255,0.25); 
+        }
+        
+        .window-body {
+            padding: 2rem;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #f5f5f5;
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .window.minimized .window-body { 
+            display: none !important; 
+        }
+        
+        .window.minimized .title-bar { 
+            opacity: 0.85; 
+        }
+        
+        .window.minimized {
+            height: auto;
+        }
+        
+        .upload-section {
+            text-align: center;
+            margin-bottom: 2rem;
+            flex-shrink: 0;
+        }
+        
+        .upload-section h2 {
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+            color: #f5f5f5;
+        }
+        
+        .upload-section p {
+            opacity: 0.9;
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+        }
+        
+        .drop-zone {
+            border: 3px dashed rgba(255,255,255,0.4);
+            padding: 20rem 20rem;
+            border-radius: 1rem;
+            margin: 1.5rem 0;
+            background: rgba(255,255,255,0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .drop-zone:hover {
+            background: rgba(255,255,255,0.15);
+            border-color: rgba(255,255,255,0.6);
+            transform: translateY(-2px);
+        }
+        
+        .drop-zone h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #f5f5f5;
+        }
+        
+        .drop-zone p {
+            opacity: 0.8;
+            font-size: 1rem;
+        }
+        
+        .btn {
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            background: var(--gradient-red-lime);
+            color: white; border: none; font-weight: 700;
+            font-size: 1rem; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: all 0.2s ease;
+            font-family: 'Nunito', sans-serif;
+            text-decoration: none; display: inline-block;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            overflow-y: auto;
+        }
+        
+        .file-list {
+            flex-shrink: 0;
+        }
+        
+        .file-item {
+            padding: 1.2rem;
+            background: rgba(255,255,255,0.1);
+            margin: 0.5rem 0;
+            border-radius: 0.75rem;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.2s ease;
+            font-size: 1rem;
+        }
+        
+        .file-item:hover {
+            background: rgba(255,255,255,0.15);
+        }
+        
+        .status {
+            padding: 2rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(255,255,255,0.2);
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .status-processing {
+            background: rgba(255, 243, 205, 0.2);
+            border-color: rgba(255, 234, 167, 0.4);
+        }
+        
+        .status-completed {
+            background: rgba(212, 237, 218, 0.2);
+            border-color: rgba(195, 230, 203, 0.4);
+        }
+        
+        .status h3 {
+            margin-bottom: 1rem;
+            color: #f5f5f5;
+            font-size: 1.3rem;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .feedback-window {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 900px;
+            max-height: 80vh;
+            background: var(--window-bg);
+            border-radius: 1rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            z-index: 2000;
+            overflow: hidden;
+        }
+        
+        .feedback-content {
+            padding: 2rem;
+            max-height: calc(80vh - 4rem);
+            overflow-y: auto;
+            color: #f5f5f5;
+        }
+        
+        .feedback-item {
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: rgba(255,255,255,0.1);
+            border-radius: 0.75rem;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .feedback-item h4 {
+            margin-bottom: 1rem;
+            color: #f5f5f5;
+        }
+        
+        .close-feedback {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+        
+        .close-feedback:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        /* Custom scrollbar */
+        .window-body::-webkit-scrollbar,
+        .content-area::-webkit-scrollbar,
+        .status::-webkit-scrollbar,
+        .feedback-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .window-body::-webkit-scrollbar-track,
+        .content-area::-webkit-scrollbar-track,
+        .status::-webkit-scrollbar-track,
+        .feedback-content::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+        
+        .window-body::-webkit-scrollbar-thumb,
+        .content-area::-webkit-scrollbar-thumb,
+        .status::-webkit-scrollbar-thumb,
+        .feedback-content::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 4px;
+        }
+        
+        .window-body::-webkit-scrollbar-thumb:hover,
+        .content-area::-webkit-scrollbar-thumb:hover,
+        .status::-webkit-scrollbar-thumb:hover,
+        .feedback-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.4);
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🎬 Video Emotion Analysis</h1>
-        <p>Upload videos to analyze emotions from visual cues</p>
-        
-        <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
-            <h3>📁 Click to select videos</h3>
-            <p>Supports: MP4, AVI, MOV, MKV, WMV</p>
-        </div>
-        
-        <input type="file" id="fileInput" multiple accept="video/*" style="display: none;">
-        <button id="uploadBtn" class="btn" style="display: none;">Upload Videos</button>
-        
-        <div id="fileList" class="file-list"></div>
-        <div id="status" class="status" style="display: none;"></div>
-    </div>
+    <header class="appbar">
+        <div class="app-title">ReLive!</div>
+    </header>
 
+    <div class="main-container">
+        <div class="window">
+            <div class="title-bar">
+                <div class="win-dot"></div>
+                <div class="title-bar-text">Video Emotion Analysis</div>
+                <div class="title-bar-controls">
+                    <button id="minimizeBtn" aria-label="Minimize">−</button>
+                    <button id="maximizeBtn" aria-label="Maximize" style="display:none;">□</button>
+                </div>
+            </div>
+            
+            <div class="window-body">
+                <div class="upload-section">
+                    <h2>🎭 Analyze Video Emotions</h2>
+                    <p>Upload videos to analyze emotions from visual cues and get AI-powered feedback</p>
+                    
+                    <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
+                        <h3>📁 Click to select videos</h3>
+                        <p>Supports: MP4, AVI, MOV, MKV, WMV, FLV, WEBM</p>
+                    </div>
+                    
+                    <input type="file" id="fileInput" multiple accept="video/*" style="display: none;">
+                    <button id="uploadBtn" class="btn" style="display: none;">🚀 Upload & Analyze Videos</button>
+                </div>
+                
+                <div class="content-area">
+                    <div id="fileList" class="file-list"></div>
+                    <div id="status" class="status" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
     <script>
         let selectedFiles = [];
         let uploadedVideos = [];
@@ -418,7 +765,7 @@ UPLOAD_HTML = """
             selectedFiles.forEach(file => {
                 const div = document.createElement('div');
                 div.className = 'file-item';
-                div.innerHTML = `📹 ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)`;
+                div.innerHTML = `📹 ${file.name} <span style="opacity: 0.7;">(${(file.size/1024/1024).toFixed(1)} MB)</span>`;
                 fileList.appendChild(div);
             });
         }
@@ -446,7 +793,7 @@ UPLOAD_HTML = """
             const statusDiv = document.getElementById('status');
             statusDiv.style.display = 'block';
             statusDiv.className = 'status status-processing';
-            statusDiv.innerHTML = '<h3>🔄 Processing videos...</h3>';
+            statusDiv.innerHTML = '<h3>🔄 Processing videos...</h3><p>Please wait while we analyze your videos for emotional content.</p>';
             
             const interval = setInterval(async () => {
                 let allCompleted = true;
@@ -472,8 +819,7 @@ UPLOAD_HTML = """
                 if (allCompleted) {
                     clearInterval(interval);
                     statusDiv.className = 'status status-completed';
-                    statusDiv.innerHTML += ' <button class="btn" onclick="getFeedback()">💬 Get AI Feedback via Poke</button>';
-                    statusDiv.innerHTML += '<br><button class="btn" onclick="viewResults()">📈 View Results</button>';
+                    statusDiv.innerHTML += '<div class="button-group"><button class="btn" onclick="getFeedback()">💬 Get AI Feedback via Poke</button><button class="btn" onclick="viewResults()">📈 View Raw Results</button></div>';
                 }
             }, 2000);
         }
@@ -487,33 +833,79 @@ UPLOAD_HTML = """
                 const response = await fetch('/analyze_feedback');
                 const data = await response.json();
                 
-                // Create a formatted display
-                let feedbackHtml = '<h3>AI Feedback Analysis</h3>';
+                // Create feedback window
+                const feedbackWindow = document.createElement('div');
+                feedbackWindow.className = 'feedback-window';
+                
+                let feedbackHtml = `
+                    <div class="title-bar">
+                        <div class="win-dot"></div>
+                        <div class="title-bar-text">AI Feedback Analysis</div>
+                    </div>
+                    <button class="close-feedback" onclick="this.parentElement.remove()">×</button>
+                    <div class="feedback-content">
+                        <h3>🤖 AI Analysis Results</h3>
+                        <p style="margin-bottom: 1.5rem; opacity: 0.9;">Based on ${data.total_videos_analyzed} video(s) analyzed</p>
+                `;
+                
                 data.feedback_results.forEach((result, index) => {
                     feedbackHtml += `
-                        <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 5px;">
-                            <h4>Video ${index + 1} Analysis</h4>
+                        <div class="feedback-item">
+                            <h4>📹 Video ${index + 1} Analysis</h4>
                             <p><strong>Frames Analyzed:</strong> ${result.total_frames_analyzed}</p>
-                            <div style="white-space: pre-wrap;">${result.feedback}</div>
-                            ${result.poke_response ? '<p><em>✅ Feedback sent to Poke successfully!</em></p>' : ''}
+                            <div style="margin-top: 1rem; white-space: pre-wrap; line-height: 1.6;">${result.feedback}</div>
+                            ${result.poke_response ? '<p style="margin-top: 1rem; font-style: italic; opacity: 0.8;">✅ Feedback sent to Poke successfully!</p>' : ''}
                         </div>
                     `;
                 });
                 
-                // Open in new window
-                const newWindow = window.open('', '_blank');
-                newWindow.document.write(`
-                    <html>
-                        <head><title>Video Feedback Analysis</title></head>
-                        <body style="font-family: Arial; margin: 20px; max-width: 800px;">
-                            ${feedbackHtml}
-                        </body>
-                    </html>
-                `);
+                feedbackHtml += '</div>';
+                feedbackWindow.innerHTML = feedbackHtml;
+                
+                document.body.appendChild(feedbackWindow);
                 
             } catch (error) {
                 alert('Failed to get feedback analysis: ' + error);
             }
+        }
+
+        // Close feedback window when clicking outside
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('feedback-window')) {
+                e.target.remove();
+            }
+        });
+
+        // Window controls functionality
+        const mainWindow = document.querySelector('.window');
+        const minimizeBtn = document.getElementById('minimizeBtn');
+        const maximizeBtn = document.getElementById('maximizeBtn');
+        const titleBar = document.querySelector('.title-bar');
+        
+        if (mainWindow && minimizeBtn && maximizeBtn && titleBar) {
+            function toggleMinimize() {
+                const isNowMinimized = mainWindow.classList.toggle('minimized');
+                if (isNowMinimized) {
+                    minimizeBtn.style.display = 'none';
+                    maximizeBtn.style.display = 'inline-block';
+                } else {
+                    minimizeBtn.style.display = 'inline-block';
+                    maximizeBtn.style.display = 'none';
+                }
+            }
+            
+            minimizeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleMinimize();
+            });
+            
+            maximizeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleMinimize();
+            });
+            
+            // Double-click title bar to minimize/maximize
+            titleBar.addEventListener('dblclick', toggleMinimize);
         }
     </script>
 </body>
