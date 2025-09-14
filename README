@@ -1,6 +1,6 @@
 # Video Emotion Analysis with AI Feedback
 
-A Flask-based web application that analyzes emotions from videos collected by the Mentra Live glass, by using computer vision, audio processing, and AI-powered feedback generation. Built for HackMIT 2025 with integration to Anthropic's LLM Model - Claude and Poke's automation platform.
+A Flask-based web application that analyzes emotions in videos using computer vision, audio processing, and AI-powered feedback generation. Built for HackMIT 2024 with integration to Poke's automation platform.
 
 ## Features
 
