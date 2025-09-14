@@ -130,7 +130,7 @@ def analyze_frame_emotion(frame_path):
                         },
                         {
                             "type": "text",
-                            "text": "Analyze the emotions on the face of the person in this image. Return JSON with emotion scores 0-10 for: joy, sadness, anger, fear, surprise, disgust, neutral. Format: {\"emotions\": {\"joy\": 5, \"sadness\": 2}, \"description\": \"what you see\"}"
+                            "text": "Analyze the emotions on the face of the person in this image. Also factor into the analyzation the text from the audio sample. Return JSON with emotion scores 0-10 for: joy, sadness, anger, fear, surprise, disgust, neutral. Format: {\"emotions\": {\"joy\": 5, \"sadness\": 2}, \"description\": \"what you see\"}"
                         }
                     ]
                 }
