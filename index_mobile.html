@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>ReLive!</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap');
+
+    :root {
+      --win: 18rem;
+      --bg-primary: #FFFAF2;
+      --bg-secondary: #262626;
+      --text-primary: #f5f5f5;
+      --text-secondary: #666666;
+      --accent-from: #f56ebd;
+      --accent-to: #97f0b6;
+      --border-color: #b1b0fe;
+      --header-height: 56px;
+      --window-spacing: 1.2rem;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      height: 100%;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 550;
+    }
+
+    .header {
+      padding: 1rem;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background-color: #FFFDD0;
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid var(--border-color);
+      height: var(--header-height);
+    }
+
+    .header h1 {
+      font-weight: 700;
+      color: #9ACD32;
+      font-size: 1.5rem;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .reset-btn {
+      padding: 0.5rem 1rem;
+      border-radius: 0.75rem;
+      background: linear-gradient(to right, #c19acb, #b28ac5);
+      color: white;
+      border: none;
+      font-weight: 700;
+      font-size: 0.875rem;
+      cursor: pointer;
+      box-shadow:
+        0 2px 5px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+      transition: all 0.2s ease;
+      font-family: 'Nunito', sans-serif;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+      letter-spacing: 0.5px;
+      text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+    }
+
+    .reset-btn:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 4px 8px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(255, 255, 255, 0.3) inset;
+    }
+
+    .canvas {
+      position: relative;
+      min-height: calc(100svh - var(--header-height));
+      overflow-y: auto;
+      touch-action: pan-y;
+      user-select: none;
+      padding: calc(var(--header-height) + 1rem) 1rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--window-spacing);
+    }
+
+    .win {
+      position: relative;
+      width: min(90vw, 400px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+      border-radius: 1rem;
+      border: 1px solid var(--border-color);
+      background-color: #c19acb;
+      backdrop-filter: blur(8px);
+      transition: all 0.2s ease;
+      will-change: transform;
+    }
+
+    .win:hover {
+      box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.2);
+    }
+
+    .win-header {
+      cursor: grab;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      border-top-left-radius: 1rem;
+      border-top-right-radius: 1rem;
+      background: linear-gradient(to right, var(--accent-from), var(--accent-to));
+      color: white;
+    }
+
+    .win-header:active {
+      cursor: grabbing;
+    }
+
+    .win-dot {
+      width: 0.6rem;
+      height: 0.6rem;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .win-title {
+      font-size: 1rem;
+      font-weight: 700;
+      flex-grow: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .minify-btn {
+      font-size: 1rem;
+      font-weight: bold;
+      background-color: rgba(255, 255, 255, 0.15);
+      padding: 0.25rem 0.6rem;
+      border-radius: 0.5rem;
+      border: none;
+      color: white;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .minify-btn:hover {
+      background-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .win-content {
+      padding: 1rem;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      color: var(--text-primary);
+    }
+
+    /* New Action Items Window Style */
+    .win-action {
+      background-color: #FFFDD0;
+    }
+
+    .win-action .win-header {
+      background: linear-gradient(to right, #fd5a47, #c0e264);
+    }
+
+    .win-action .win-content {
+      color: #6a3fbf; /* override for action window text */
+    }
+
+    body {
+      background: linear-gradient(135deg, var(--bg-primary) 0%, #f8f4e9 100%);
+      color: var(--text-primary);
+      min-height: 100svh;
+    }
+
+    /* Dropdown menu */
+    .dropdown {
+      position: absolute;
+      top: var(--header-height);
+      right: 1rem;
+      background: linear-gradient(#d8b4ff);
+      border: 1px solid var(--border-color);
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      min-width: 150px;
+      display: flex;
+      flex-direction: column;
+      z-index: 200;
+      display: none;
+    }
+
+    .dropdown.show {
+      display: flex;
+    }
+
+    .dropdown a {
+      padding: 0.75rem 1rem;
+      color: var(--text-primary);
+      text-decoration: none;
+      font-weight: 550;
+    }
+
+    .dropdown a:hover {
+      background-color: rgba(193, 154, 203, 0.15);
+    }
+  </style>
+</head>
+
+<body>
+  <header class="header">
+    <h1>ReLive!</h1>
+    <div style="display:flex; gap:0.5rem; position:relative;">
+      <button id="resetBtn" class="reset-btn">Reset</button>
+      <button id="menuBtn" class="reset-btn">Menu</button>
+      <div id="menuDropdown" class="dropdown">
+        <a href="window1.html">Window 1</a>
+        <a href="window2.html">Window 2</a>
+        <a href="window3.html">Window 3</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="canvas" class="canvas">
+    <!-- Windows will be injected here -->
+  </main>
+
+  <template id="tpl">
+    <section class="win">
+      <header class="win-header handle">
+        <div class="win-dot"></div>
+        <h2 class="win-title">Window</h2>
+        <button class="minify-btn minify">–</button>
+      </header>
+      <div class="win-content content">
+        <p>Drag me by the top bar. Works with touch (Pointer Events) and mouse.</p>
+      </div>
+    </section>
+  </template>
+
+  <template id="tpl-action">
+    <section class="win win-action">
+      <header class="win-header handle">
+        <div class="win-dot"></div>
+        <h2 class="win-title">Action Items</h2>
+        <button class="minify-btn minify">–</button>
+      </header>
+      <div class="win-content content">
+        <p>Custom styled Action Items window.</p>
+      </div>
+    </section>
+  </template>
+
+  <script>
+    const Z_BASE = 10; let zTop = Z_BASE;
+    const canvas = document.getElementById('canvas');
+    const tpl = document.getElementById('tpl');
+    const tplAction = document.getElementById('tpl-action');
+
+    const windowsData = [
+      { id: 'win-topics', title: 'Topics', html: '<div><div>Longest: 4m12s</div><div>Peak Sentiment: High @ 23:17</div></div>' },
+      { id: 'win-highlights', title: 'Highlights', html: '<div><div>Longest: 4m12s</div><div>Peak Sentiment: High @ 23:17</div></div>' },
+      { id: 'win-actions', title: 'Action Items', html: '<p>Additional content here.</p>', action: true },
+      { id: 'win-extra1', title: 'Extra Window 1', html: '<p>Additional content here.</p>' },
+      { id: 'win-extra2', title: 'Extra Window 2', html: '<p>Another extra window.</p>' },
+    ];
+
+    windowsData.forEach(w => {
+      const savedPos = localStorage.getItem(w.id);
+      if (savedPos) {
+        const { x, y } = JSON.parse(savedPos);
+        createWindow({ ...w, x, y });
+      } else {
+        createWindow(w);
+      }
+    });
+
+    function createWindow({ id, title, x = 0, y = 0, html, action = false }) {
+      const tplNode = action ? tplAction : tpl;
+      const node = tplNode.content.firstElementChild.cloneNode(true);
+      node.dataset.id = id;
+      node.style.transform = `translate(${x}px, ${y}px)`;
+      node.style.zIndex = ++zTop;
+      node.querySelector('.win-title').textContent = title;
+      node.querySelector('.content').innerHTML = html;
+
+      const handle = node.querySelector('.handle');
+      const minBtn = node.querySelector('.minify');
+
+      let startX = 0, startY = 0;
+      let winX = x, winY = y;
+      let dragging = false;
+
+      handle.addEventListener('pointerdown', onPointerDown, { passive: false });
+      handle.addEventListener('dblclick', () => toggleMinify(node));
+      minBtn.addEventListener('click', () => toggleMinify(node));
+      node.addEventListener('pointerdown', () => node.style.zIndex = ++zTop);
+
+      function onPointerDown(e) {
+        e.preventDefault();
+        dragging = true;
+        node.classList.add('dragging');
+        startX = e.clientX; startY = e.clientY;
+        const m = node.style.transform.match(/translate\(([-0-9.]+)px,\s*([-0-9.]+)px\)/);
+        if (m) { winX = parseFloat(m[1]); winY = parseFloat(m[2]); }
+        node.setPointerCapture(e.pointerId);
+        node.addEventListener('pointermove', onPointerMove, { passive: false });
+        node.addEventListener('pointerup', onPointerUp, { passive: true, once: true });
+        node.addEventListener('pointercancel', onPointerUp, { passive: true, once: true });
+      }
+
+      function onPointerMove(e) {
+        if (!dragging) return;
+        e.preventDefault();
+        const dx = e.clientX - startX; const dy = e.clientY - startY;
+        let nx = winX + dx; let ny = winY + dy;
+        node.style.transform = `translate(${nx}px, ${ny}px)`;
+      }
+
+      function onPointerUp(e) {
+        dragging = false; node.classList.remove('dragging');
+        node.releasePointerCapture(e.pointerId);
+        node.removeEventListener('pointermove', onPointerMove);
+        const m = node.style.transform.match(/translate\(([-0-9.]+)px,\s*([-0-9.]+)px\)/);
+        if (m) {
+          localStorage.setItem(id, JSON.stringify({ x: parseFloat(m[1]), y: parseFloat(m[2]) }));
+        }
+      }
+
+      canvas.appendChild(node);
+    }
+
+    function toggleMinify(node) {
+      const body = node.querySelector('.content');
+      const isHidden = body.classList.toggle('hidden');
+      node.querySelector('.minify').textContent = isHidden ? '+' : '–';
+    }
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      windowsData.forEach(w => localStorage.removeItem(w.id));
+      location.reload();
+    });
+
+    const menuBtn = document.getElementById('menuBtn');
+    const menuDropdown = document.getElementById('menuDropdown');
+
+    menuBtn.addEventListener('click', () => {
+      menuDropdown.classList.toggle('show');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!menuBtn.contains(e.target) && !menuDropdown.contains(e.target)) {
+        menuDropdown.classList.remove('show');
+      }
+    });
+  </script>
+</body>
+</html>
