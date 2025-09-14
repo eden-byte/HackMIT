@@ -11,12 +11,16 @@ import threading
 from queue import Queue
 import base64
 import subprocess
-import soundfile as sf
 import shutil
+import soundfile as sf
+import requests
 
 #Import the processing modules
 import audio_processor
 import image_processor
+
+from dotenv import load_dotenv
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
@@ -28,6 +32,8 @@ RESULTS_FOLDER = 'results'
 SAMPLE_RATE_SECONDS = 2
 AUDIO_CLIP_DURATION_SECONDS = 3
 AUDIO_SAMPLE_RATE = 44100 # The sample rate to work with
+POKE_API_KEY = os.getenv('POKE_API_KEY', 'your-poke-api-key-here')
+POKE_API_URL = 'https://poke.com/api/v1/inbound-sms/webhook'
 
 # Create directories if they don't exist
 for folder in [UPLOAD_FOLDER, FRAMES_FOLDER, RESULTS_FOLDER]:
@@ -36,6 +42,10 @@ for folder in [UPLOAD_FOLDER, FRAMES_FOLDER, RESULTS_FOLDER]:
 # Allowed video extensions
 ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv', 'wmv', 'flv', 'webm'}
 
+# Initialize Anthropic client
+anthropic_client = anthropic.Anthropic(
+    api_key=os.getenv('ANTHROPIC_API_KEY', 'your-api-key-here')
+)
 
 # Global processing queue
 processing_queue = Queue()
@@ -114,7 +124,7 @@ def analyze_frame_emotion(frame_path):
             image_base64 = base64.b64encode(image_data).decode('utf-8')
         
         message = anthropic_client.messages.create(
-            model="claude-3-5-haiku-20241022",
+            model="claude-3-5-haiku-20241022",  # Fast model with high rate limits
             max_tokens=300,
             messages=[
                 {
@@ -130,7 +140,7 @@ def analyze_frame_emotion(frame_path):
                         },
                         {
                             "type": "text",
-                            "text": "Analyze the emotions on the face of the person in this image. Also factor into the analyzation the text from the audio sample. Return JSON with emotion scores 0-10 for: joy, sadness, anger, fear, surprise, disgust, neutral. Format: {\"emotions\": {\"joy\": 5, \"sadness\": 2}, \"description\": \"what you see\"}"
+                            "text": "Analyze the emotions in this image. Return JSON with emotion scores 0-10 for: joy, sadness, anger, fear, surprise, disgust, neutral. Format: {\"emotions\": {\"joy\": 5, \"sadness\": 2}, \"description\": \"what you see\"}"
                         }
                     ]
                 }
@@ -142,6 +152,82 @@ def analyze_frame_emotion(frame_path):
         
     except Exception as e:
         print(f"Error analyzing frame emotion: {e}")
+        return {"error": str(e)}
+    
+def send_to_poke(message):
+    """Send a message to Poke API"""
+    try:
+        response = requests.post(
+            POKE_API_URL,
+            headers={
+                'Authorization': f'Bearer {POKE_API_KEY}',
+                'Content-Type': 'application/json'
+            },
+            json={'message': message}
+        )
+        return response.json()
+    except Exception as e:
+        print(f"Error sending to Poke: {e}")
+        return {"error": str(e)}
+    
+def analyze_video_feedback(video_data):
+    """Analyze all visual analysis data and provide constructive feedback"""
+    try:
+        # Extract all visual analyses
+        visual_analyses = []
+        emotion_scores = []
+        
+        for result in video_data.get('results', []):
+            if 'frame_emotion' in result and 'visual_analysis' in result['frame_emotion']:
+                visual_analyses.append(result['frame_emotion']['visual_analysis'])
+                # Try to extract emotion scores if in JSON format
+                try:
+                    emotion_data = json.loads(result['frame_emotion']['visual_analysis'])
+                    if 'emotions' in emotion_data:
+                        emotion_scores.append(emotion_data['emotions'])
+                except:
+                    pass
+        
+        # Create comprehensive analysis prompt
+        prompt = f"""
+        Based on this video emotion analysis data, provide constructive feedback about the person's presentation and emotional expression:
+
+        Visual Analysis Data: {visual_analyses}
+
+        Please provide:
+        1. POSITIVE ASPECTS: What the person does well emotionally (genuine smiles, engaging expressions, confident body language, etc.)
+        2. CONSTRUCTIVE FEEDBACK: Areas for improvement in emotional expression and presentation (maintaining consistent energy, reducing nervous expressions, etc.)
+        3. OVERALL IMPRESSION: Summary of their emotional presence and charisma
+        4. ACTIONABLE TIPS: Specific suggestions for improving their on-camera presence
+
+        Keep feedback supportive and encouraging while being honest about areas for growth. Focus on presentation skills and emotional communication.
+        """
+        
+        message = anthropic_client.messages.create(
+            model="claude-3-5-haiku-20241022",
+            max_tokens=800,
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        )
+        
+        feedback = message.content[0].text
+        
+        # Send feedback to Poke
+        poke_message = f"Video Analysis Feedback:\n\n{feedback}"
+        poke_response = send_to_poke(poke_message)
+        
+        return {
+            "feedback": feedback,
+            "poke_response": poke_response,
+            "total_frames_analyzed": len(visual_analyses)
+        }
+        
+    except Exception as e:
+        print(f"Error analyzing video feedback: {e}")
         return {"error": str(e)}
 
 def process_video_enhanced(video_id, video_path):
@@ -266,6 +352,7 @@ def process_video_enhanced(video_id, video_path):
             'error': str(e)
         }
 
+
 def worker():
     """Background worker to process videos"""
     while True:
@@ -385,6 +472,7 @@ UPLOAD_HTML = """
                 if (allCompleted) {
                     clearInterval(interval);
                     statusDiv.className = 'status status-completed';
+                    statusDiv.innerHTML += ' <button class="btn" onclick="getFeedback()">💬 Get AI Feedback via Poke</button>';
                     statusDiv.innerHTML += '<br><button class="btn" onclick="viewResults()">📈 View Results</button>';
                 }
             }, 2000);
@@ -392,6 +480,40 @@ UPLOAD_HTML = """
 
         function viewResults() {
             window.open('/all_results', '_blank');
+        }
+
+        async function getFeedback() {
+            try {
+                const response = await fetch('/analyze_feedback');
+                const data = await response.json();
+                
+                // Create a formatted display
+                let feedbackHtml = '<h3>AI Feedback Analysis</h3>';
+                data.feedback_results.forEach((result, index) => {
+                    feedbackHtml += `
+                        <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                            <h4>Video ${index + 1} Analysis</h4>
+                            <p><strong>Frames Analyzed:</strong> ${result.total_frames_analyzed}</p>
+                            <div style="white-space: pre-wrap;">${result.feedback}</div>
+                            ${result.poke_response ? '<p><em>✅ Feedback sent to Poke successfully!</em></p>' : ''}
+                        </div>
+                    `;
+                });
+                
+                // Open in new window
+                const newWindow = window.open('', '_blank');
+                newWindow.document.write(`
+                    <html>
+                        <head><title>Video Feedback Analysis</title></head>
+                        <body style="font-family: Arial; margin: 20px; max-width: 800px;">
+                            ${feedbackHtml}
+                        </body>
+                    </html>
+                `);
+                
+            } catch (error) {
+                alert('Failed to get feedback analysis: ' + error);
+            }
         }
     </script>
 </body>
@@ -467,6 +589,35 @@ def get_all_results():
                 continue
     
     return jsonify(all_results)
+
+@app.route('/analyze_feedback')
+def get_analysis_feedback():
+    """Analyze all videos and provide constructive feedback via Poke"""
+    all_results = []
+    for video_id, status_info in processing_results.items():
+        if status_info['status'] == 'completed':
+            try:
+                with open(status_info['results_file'], 'r') as f:
+                    data = json.load(f)
+                all_results.append(data)
+            except:
+                continue
+    
+    if not all_results:
+        return jsonify({'error': 'No completed video analyses found'}), 404
+    
+    # Analyze each video and combine feedback
+    all_feedback = []
+    for video_data in all_results:
+        feedback = analyze_video_feedback(video_data)
+        feedback['video_id'] = video_data['video_id']
+        all_feedback.append(feedback)
+    
+    return jsonify({
+        'total_videos_analyzed': len(all_results),
+        'feedback_results': all_feedback,
+        'analysis_generated_at': datetime.now().isoformat()
+    })
 
 if __name__ == '__main__':
     print("🚀 Starting Video Emotion Analysis Server...")
