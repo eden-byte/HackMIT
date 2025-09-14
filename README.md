@@ -13,7 +13,7 @@ A Flask-based web application that analyzes emotions from videos collected by th
 - Real-time processing status updates
 - RESTful API for frontend integration
 
-## Technology Stack
+## 💻 Technology Stack
 
 - **Backend**: Flask, Python 3.8+
 - **Computer Vision**: OpenCV, custom image processing
@@ -22,9 +22,9 @@ A Flask-based web application that analyzes emotions from videos collected by th
 - **Automation**: Poke API integration
 - **Frontend**: HTML5, JavaScript, CSS3
 
-## Installation
+## 📦 Installation
 
-### Prerequisites
+### 🛠️ Prerequisites
 
 - Python 3.8 or higher
 - FFmpeg installed and in PATH
@@ -98,7 +98,7 @@ The server will start at `http://localhost:5000`
 6. **Feedback Generation**: Create constructive presentation feedback
 7. **Poke Integration**: Automatically send feedback via Poke API
 
-## Configuration
+## ⚙️ Configuration
 
 ### Sampling Settings
 ```python
@@ -110,7 +110,7 @@ AUDIO_SAMPLE_RATE = 44100  # Audio sample rate
 ### Supported Video Formats
 - MP4, AVI, MOV, MKV, WMV, FLV, WebM
 
-## Example Output
+## 📊 Example Output
 
 ### Emotion Analysis Result
 ```json
@@ -156,7 +156,7 @@ ACTIONABLE TIPS:
 3. Vary vocal tone to match emotional content
 ```
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 video-emotion-analysis/
@@ -172,7 +172,7 @@ video-emotion-analysis/
 └── results/              # Analysis results (JSON)
 ```
 
-## API Keys Setup
+## 🔑 API Keys Setup
 
 ### Anthropic API Key
 1. Go to https://console.anthropic.com/
@@ -184,7 +184,7 @@ video-emotion-analysis/
 2. Create an API key
 3. Add to `.env` file: `POKE_API_KEY=your-key`
 
-## Development
+## 🔧 Development
 
 ### Adding New Emotion Models
 Modify the `analyze_frame_emotion()` function to use different AI models or add custom emotion detection algorithms.
