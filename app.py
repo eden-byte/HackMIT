@@ -29,7 +29,7 @@ CORS(app)
 UPLOAD_FOLDER = 'uploads'
 FRAMES_FOLDER = 'extracted/frames'
 RESULTS_FOLDER = 'results'
-SAMPLE_RATE_SECONDS = 2
+SAMPLE_RATE_SECONDS = 5
 AUDIO_CLIP_DURATION_SECONDS = 3
 AUDIO_SAMPLE_RATE = 44100 # The sample rate to work with
 POKE_API_KEY = os.getenv('POKE_API_KEY', 'your-poke-api-key-here')
