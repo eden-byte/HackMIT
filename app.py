@@ -190,8 +190,7 @@ def analyze_video_feedback(video_data):
         
         # Create comprehensive analysis prompt
         prompt = f"""
-        Based on this video emotion analysis data, provide constructive feedback about the person's presentation and emotional expression:
-
+        A Flask-based web application that analyzes emotions from videos collected by the Mentra Live glass, using computer vision, audio processing, and AI-powered feedback generation. Built for HackMIT 2025 with integration to Anthropic's LLM Model - Claude and Poke's automation platform. We want Poke to interpret the visual notes collected by the Claude model so that it can provide constructive criticism for behavior, and facial reactions so that people can feel more comfortable in social interactions and can grow individually.
         Visual Analysis Data: {visual_analyses}
 
         Please provide:
@@ -756,7 +755,10 @@ MAIN_PAGE_HTML = """
 </head>
 <body>
     <header class="appbar">
-        <div class="app-title">ReLive! 🎭</div>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <img src="/static/logo/darklines.jpg" alt="ReLive Logo" style="height: 50px; width: auto;">
+            <div class="app-title">ReLive!</div>
+        </div>
         <nav class="nav-links">
             <a href="/demo" class="btn">Try It Now!</a>
         </nav>
@@ -787,7 +789,7 @@ MAIN_PAGE_HTML = """
             
             <div class="other-videos">
                 <div class="video-container">
-                    <div class="video-header">📊 Feature Overview</div>
+                    <div class="video-header">📊 Video 1 by Mentra Camere</div>
                     <div class="video-wrapper">
                         <video controls>
                             <source src="/static/modules/Video_1.mp4" type="video/mp4">
@@ -798,7 +800,7 @@ MAIN_PAGE_HTML = """
                 </div>
                 
                 <div class="video-container">
-                    <div class="video-header">💡 Use Cases & Benefits</div>
+                    <div class="video-header">💡 Video 2 by Mentra Camere</div>
                     <div class="video-wrapper">
                         <video controls>
                             <source src="/static/modules/Video_2.mp4" type="video/mp4">
@@ -891,7 +893,7 @@ MAIN_PAGE_HTML = """
         <!-- Call to Action Section -->
         <section class="cta-section">
             <h2>Ready to Transform Your Communication?</h2>
-            <p>Join thousands of professionals who trust ReLive! to enhance their video presence</p>
+            <p>Be one of the first to utilize ReLive! </p>
             <a href="/demo" class="btn btn-white">Start Your Free Analysis</a>
         </section>
     </main>
@@ -1181,11 +1183,59 @@ UPLOAD_HTML = """
 
         async function getFeedback() {
             try {
+                // Show loading message
+                const statusDiv = document.getElementById('status');
+                statusDiv.innerHTML = '<h3>🔄 Generating AI feedback...</h3><p>Please wait while we analyze your video data.</p>';
+                
                 const response = await fetch('/analyze_feedback');
                 const data = await response.json();
-                alert('Analysis complete! Check your Poke messages for detailed feedback.');
+                
+                if (data.error) {
+                    statusDiv.innerHTML = `<h3>❌ Error</h3><p>${data.error}</p>`;
+                    return;
+                }
+                
+                // Create formatted feedback display
+                let feedbackHtml = '<h3>🎭 AI Feedback Analysis Complete!</h3>';
+                feedbackHtml += `<p><strong>Total Videos Analyzed:</strong> ${data.total_videos_analyzed}</p>`;
+                feedbackHtml += `<p><strong>Analysis Generated:</strong> ${new Date(data.analysis_generated_at).toLocaleString()}</p>`;
+                
+                // Display each video's feedback
+                data.feedback_results.forEach((result, index) => {
+                    feedbackHtml += `
+                        <div class="file-item" style="margin-top: 1.5rem; text-align: left;">
+                            <h4>📹 Video ${index + 1} Analysis</h4>
+                            <p><strong>Frames Analyzed:</strong> ${result.total_frames_analyzed}</p>
+                            
+                            <div style="background: rgba(255,255,255,0.2); padding: 1rem; border-radius: 0.5rem; margin: 1rem 0; white-space: pre-wrap; font-family: inherit; line-height: 1.4;">
+        ${result.feedback}
+                            </div>
+                            
+                            ${result.poke_response && !result.poke_response.error ? 
+                                '<p style="color: #4ade80;"><strong>✅ Feedback sent to Poke successfully!</strong></p>' : 
+                                '<p style="color: #f87171;"><strong>⚠️ Note: Feedback not sent to Poke (check API configuration)</strong></p>'
+                            }
+                        </div>
+                    `;
+                });
+                
+                // Add option to view raw results
+                feedbackHtml += `
+                    <div style="margin-top: 2rem; text-align: center;">
+                        <button class="btn" onclick="viewResults()" style="margin-right: 1rem;">📈 View Raw Results</button>
+                        <button class="btn" onclick="window.print()">🖨️ Print Feedback</button>
+                    </div>
+                `;
+                
+                statusDiv.innerHTML = feedbackHtml;
+                
             } catch (error) {
-                alert('Failed to get feedback analysis: ' + error);
+                console.error('Feedback error:', error);
+                document.getElementById('status').innerHTML = `
+                    <h3>❌ Error</h3>
+                    <p>Failed to get feedback analysis: ${error.message}</p>
+                    <button class="btn" onclick="getFeedback()">🔄 Try Again</button>
+                `;
             }
         }
     </script>
